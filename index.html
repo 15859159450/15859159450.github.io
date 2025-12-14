@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heatmap Visualization - Full Size View</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --light-gray: #f5f7fa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+        }
+        
+        /* 头部样式 */
+        .header {
+            background-color: var(--primary);
+            color: white;
+            padding: 1.2rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+        }
+        
+        .current-cluster {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #3498db;
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        
+        /* 导航栏样式 */
+        .nav-container {
+            background-color: white;
+            padding: 1rem;
+            border-bottom: 1px solid #ddd;
+            position: sticky;
+            top: 70px;
+            z-index: 99;
+        }
+        
+        .nav {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        
+        .nav-btn {
+            padding: 0.7rem 1.5rem;
+            border: 2px solid var(--secondary);
+            background-color: white;
+            color: var(--secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 100px;
+            text-align: center;
+        }
+        
+        .nav-btn:hover {
+            background-color: #e8f4fc;
+        }
+        
+        .nav-btn.active {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        /* 主内容区 */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        /* Cluster部分 */
+        .cluster-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .cluster-section.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .cluster-title {
+            text-align: center;
+            margin: 2rem 0;
+            font-size: 2rem;
+            color: var(--primary);
+        }
+        
+        /* 热力图容器 - 全屏宽度 */
+        .heatmap-full-view {
+            margin-bottom: 2rem;
+        }
+        
+        .period-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* 图片容器 - 让图片尽量大 */
+        .image-container {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .image-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        
+        .heatmap-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .image-footer {
+            padding: 1rem;
+            background-color: #f9f9f9;
+            text-align: center;
+            font-size: 1rem;
+            color: #666;
+        }
+        
+        /* 控制按钮 */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            position: sticky;
+            bottom: 20px;
+            z-index: 98;
+        }
+        
+        .control-btn {
+            padding: 0.8rem 2rem;
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .control-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .control-btn:active {
+            transform: translateY(2px);
+        }
+        
+        /* 模态框 - 高清大图查看 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content {
+            max-width: 95%;
+            max-height: 95%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .modal-img {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 0 30px rgba(255,255,255,0.1);
+        }
+        
+        .modal-info {
+            color: white;
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 1.2rem;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2.5rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-nav {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 1rem;
+            transform: translateY(-50%);
+        }
+        
+        .modal-nav-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .modal-nav-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* 图片缩放控制 */
+        .zoom-controls {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .zoom-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        
+        .zoom-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        /* 全屏模式 */
+        .fullscreen-btn {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 1001;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 2rem;
+            color: #666;
+            border-top: 1px solid #ddd;
+            background: white;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .nav {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                justify-content: flex-start;
+                padding-bottom: 0.5rem;
+            }
+            
+            .nav-btn {
+                min-width: auto;
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .cluster-title {
+                font-size: 1.5rem;
+            }
+            
+            .period-title {
+                font-size: 1.3rem;
+            }
+            
+            .control-btn {
+                padding: 0.7rem 1.5rem;
+                font-size: 0.9rem;
+            }
+            
+            .zoom-controls {
+                bottom: 80px;
+                right: 10px;
+            }
+            
+            .zoom-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部 -->
+    <header class="header">
+        <div class="header-content">
+            <h1>Heatmap Visualization - Full Size View</h1>
+            <div class="current-cluster" id="currentCluster">Cluster 1</div>
+        </div>
+    </header>
+
+    <!-- 导航栏 -->
+    <div class="nav-container">
+        <nav class="nav">
+            <button class="nav-btn active" data-cluster="1">Cluster 1</button>
+            <button class="nav-btn" data-cluster="2">Cluster 2</button>
+            <button class="nav-btn" data-cluster="3">Cluster 3</button>
+            <button class="nav-btn" data-cluster="4">Cluster 4</button>
+            <button class="nav-btn" data-cluster="5">Cluster 5</button>
+            <button class="nav-btn" data-cluster="6">Cluster 6</button>
+            <button class="nav-btn" data-cluster="7">Cluster 7</button>
+            <button class="nav-btn" data-cluster="8">Cluster 8</button>
+            <button class="nav-btn" data-cluster="9">Cluster 9</button>
+        </nav>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="container">
+        <!-- Cluster 1 -->
+        <section id="cluster-1" class="cluster-section active">
+            <h2 class="cluster-title">Cluster 1</h2>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">📅 1980-1999</h3>
+                <div class="image-container" data-image="cluster-01-1980-1999.png">
+                    <img src="cluster-01-1980-1999.png" alt="Cluster 1 Heatmap 1980-1999" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 1980-1999 • Cluster 1
+                    </div>
+                </div>
+            </div>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">🚀 2000-2024</h3>
+                <div class="image-container" data-image="cluster-01-2000-2024.png">
+                    <img src="cluster-01-2000-2024.png" alt="Cluster 1 Heatmap 2000-2024" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 2000-2024 • Cluster 1
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cluster 2 -->
+        <section id="cluster-2" class="cluster-section">
+            <h2 class="cluster-title">Cluster 2</h2>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">📅 1980-1999</h3>
+                <div class="image-container" data-image="cluster-02-1980-1999.png">
+                    <img src="cluster-02-1980-1999.png" alt="Cluster 2 Heatmap 1980-1999" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 1980-1999 • Cluster 2
+                    </div>
+                </div>
+            </div>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">🚀 2000-2024</h3>
+                <div class="image-container" data-image="cluster-02-2000-2024.png">
+                    <img src="cluster-02-2000-2024.png" alt="Cluster 2 Heatmap 2000-2024" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 2000-2024 • Cluster 2
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cluster 3 -->
+        <section id="cluster-3" class="cluster-section">
+            <h2 class="cluster-title">Cluster 3</h2>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">📅 1980-1999</h3>
+                <div class="image-container" data-image="cluster-03-1980-1999.png">
+                    <img src="cluster-03-1980-1999.png" alt="Cluster 3 Heatmap 1980-1999" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 1980-1999 • Cluster 3
+                    </div>
+                </div>
+            </div>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">🚀 2000-2024</h3>
+                <div class="image-container" data-image="cluster-03-2000-2024.png">
+                    <img src="cluster-03-2000-2024.png" alt="Cluster 3 Heatmap 2000-2024" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 2000-2024 • Cluster 3
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cluster 4 -->
+        <section id="cluster-4" class="cluster-section">
+            <h2 class="cluster-title">Cluster 4</h2>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">📅 1980-1999</h3>
+                <div class="image-container" data-image="cluster-04-1980-1999.png">
+                    <img src="cluster-04-1980-1999.png" alt="Cluster 4 Heatmap 1980-1999" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 1980-1999 • Cluster 4
+                    </div>
+                </div>
+            </div>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">🚀 2000-2024</h3>
+                <div class="image-container" data-image="cluster-04-2000-2024.png">
+                    <img src="cluster-04-2000-2024.png" alt="Cluster 4 Heatmap 2000-2024" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 2000-2024 • Cluster 4
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cluster 5 -->
+        <section id="cluster-5" class="cluster-section">
+            <h2 class="cluster-title">Cluster 5</h2>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">📅 1980-1999</h3>
+                <div class="image-container" data-image="cluster-05-1980-1999.png">
+                    <img src="cluster-05-1980-1999.png" alt="Cluster 5 Heatmap 1980-1999" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 1980-1999 • Cluster 5
+                    </div>
+                </div>
+            </div>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">🚀 2000-2024</h3>
+                <div class="image-container" data-image="cluster-05-2000-2024.png">
+                    <img src="cluster-05-2000-2024.png" alt="Cluster 5 Heatmap 2000-2024" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 2000-2024 • Cluster 5
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cluster 6 -->
+        <section id="cluster-6" class="cluster-section">
+            <h2 class="cluster-title">Cluster 6</h2>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">📅 1980-1999</h3>
+                <div class="image-container" data-image="cluster-06-1980-1999.png">
+                    <img src="cluster-06-1980-1999.png" alt="Cluster 6 Heatmap 1980-1999" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 1980-1999 • Cluster 6
+                    </div>
+                </div>
+            </div>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">🚀 2000-2024</h3>
+                <div class="image-container" data-image="cluster-06-2000-2024.png">
+                    <img src="cluster-06-2000-2024.png" alt="Cluster 6 Heatmap 2000-2024" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 2000-2024 • Cluster 6
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cluster 7 -->
+        <section id="cluster-7" class="cluster-section">
+            <h2 class="cluster-title">Cluster 7</h2>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">📅 1980-1999</h3>
+                <div class="image-container" data-image="cluster-07-1980-1999.png">
+                    <img src="cluster-07-1980-1999.png" alt="Cluster 7 Heatmap 1980-1999" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 1980-1999 • Cluster 7
+                    </div>
+                </div>
+            </div>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">🚀 2000-2024</h3>
+                <div class="image-container" data-image="cluster-07-2000-2024.png">
+                    <img src="cluster-07-2000-2024.png" alt="Cluster 7 Heatmap 2000-2024" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 2000-2024 • Cluster 7
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cluster 8 -->
+        <section id="cluster-8" class="cluster-section">
+            <h2 class="cluster-title">Cluster 8</h2>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">📅 1980-1999</h3>
+                <div class="image-container" data-image="cluster-08-1980-1999.png">
+                    <img src="cluster-08-1980-1999.png" alt="Cluster 8 Heatmap 1980-1999" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 1980-1999 • Cluster 8
+                    </div>
+                </div>
+            </div>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">🚀 2000-2024</h3>
+                <div class="image-container" data-image="cluster-08-2000-2024.png">
+                    <img src="cluster-08-2000-2024.png" alt="Cluster 8 Heatmap 2000-2024" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 2000-2024 • Cluster 8
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cluster 9 -->
+        <section id="cluster-9" class="cluster-section">
+            <h2 class="cluster-title">Cluster 9</h2>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">📅 1980-1999</h3>
+                <div class="image-container" data-image="cluster-09-1980-1999.png">
+                    <img src="cluster-09-1980-1999.png" alt="Cluster 9 Heatmap 1980-1999" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 1980-1999 • Cluster 9
+                    </div>
+                </div>
+            </div>
+            
+            <div class="heatmap-full-view">
+                <h3 class="period-title">🚀 2000-2024</h3>
+                <div class="image-container" data-image="cluster-09-2000-2024.png">
+                    <img src="cluster-09-2000-2024.png" alt="Cluster 9 Heatmap 2000-2024" class="heatmap-image">
+                    <div class="image-footer">
+                        Click to view full size image • 2000-2024 • Cluster 9
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 控制按钮 -->
+        <div class="controls">
+            <button class="control-btn" id="prevBtn">← Previous Cluster</button>
+            <button class="control-btn" id="nextBtn">Next Cluster →</button>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p><strong>Heatmap Visualization - Full Size View</strong></p>
+            <p>Click on any heatmap to view it in full size • Use the buttons above to navigate between clusters</p>
+            <p style="margin-top: 1rem; color: #999; font-size: 0.9rem;">Images are displayed at maximum available size for optimal readability</p>
+        </footer>
+    </div>
+
+    <!-- 模态框 - 高清大图查看 -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <div class="modal-nav">
+                <button class="modal-nav-btn" id="modalPrevBtn">←</button>
+                <button class="modal-nav-btn" id="modalNextBtn">→</button>
+            </div>
+            <img id="modalImage" class="modal-img" src="" alt="">
+            <div class="modal-info" id="modalInfo"></div>
+        </div>
+    </div>
+
+    <!-- 图片缩放控制（仅在模态框显示时出现） -->
+    <div class="zoom-controls" id="zoomControls" style="display: none;">
+        <button class="zoom-btn" id="zoomInBtn">+</button>
+        <button class="zoom-btn" id="zoomOutBtn">-</button>
+        <button class="zoom-btn" id="resetZoomBtn">↺</button>
+    </div>
+
+    <script>
+        // Cluster导航功能
+        document.querySelectorAll('.nav-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const clusterId = button.getAttribute('data-cluster');
+                
+                // 更新导航按钮状态
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+                
+                // 更新当前cluster显示
+                document.getElementById('currentCluster').textContent = `Cluster ${clusterId}`;
+                
+                // 切换显示的cluster部分
+                document.querySelectorAll('.cluster-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(`cluster-${clusterId}`).classList.add('active');
+                
+                // 滚动到顶部
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        });
+
+        // 上一页/下一页按钮
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            const activeBtn = document.querySelector('.nav-btn.active');
+            const prevBtn = activeBtn.previousElementSibling || document.querySelector('.nav-btn:last-child');
+            if (prevBtn) prevBtn.click();
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            const activeBtn = document.querySelector('.nav-btn.active');
+            const nextBtn = activeBtn.nextElementSibling || document.querySelector('.nav-btn:first-child');
+            if (nextBtn) nextBtn.click();
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') document.getElementById('prevBtn').click();
+            if (e.key === 'ArrowRight') document.getElementById('nextBtn').click();
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // 模态框功能
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        const modalInfo = document.getElementById('modalInfo');
+        const modalClose = document.querySelector('.modal-close');
+        const zoomControls = document.getElementById('zoomControls');
+        
+        let currentZoom = 1;
+        let allImages = [];
+        let currentImageIndex = 0;
+        
+        // 收集所有图片
+        function collectAllImages() {
+            allImages = [];
+            document.querySelectorAll('.image-container').forEach(container => {
+                const imgSrc = container.getAttribute('data-image');
+                const imgElement = container.querySelector('.heatmap-image');
+                allImages.push({
+                    src: imgElement.src,
+                    alt: imgElement.alt,
+                    container: container
+                });
+            });
+        }
+        
+        // 打开模态框
+        function openModal(imageSrc, imageAlt) {
+            collectAllImages();
+            
+            // 找到当前图片的索引
+            currentImageIndex = allImages.findIndex(img => img.src.includes(imageSrc));
+            
+            // 设置模态框内容
+            modalImg.src = imageSrc;
+            modalImg.alt = imageAlt;
+            modalInfo.textContent = imageAlt;
+            
+            // 显示模态框和缩放控制
+            modal.style.display = 'flex';
+            zoomControls.style.display = 'flex';
+            
+            // 重置缩放
+            currentZoom = 1;
+            modalImg.style.transform = `scale(${currentZoom})`;
+            modalImg.style.transformOrigin = 'center center';
+            
+            // 阻止背景滚动
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // 关闭模态框
+        function closeModal() {
+            modal.style.display = 'none';
+            zoomControls.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        
+        // 模态框导航
+        document.getElementById('modalPrevBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigateModal(-1);
+        });
+        
+        document.getElementById('modalNextBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigateModal(1);
+        });
+        
+        function navigateModal(direction) {
+            currentImageIndex += direction;
+            
+            // 循环导航
+            if (currentImageIndex < 0) currentImageIndex = allImages.length - 1;
+            if (currentImageIndex >= allImages.length) currentImageIndex = 0;
+            
+            const image = allImages[currentImageIndex];
+            modalImg.src = image.src;
+            modalImg.alt = image.alt;
+            modalInfo.textContent = image.alt;
+            
+            // 重置缩放
+            currentZoom = 1;
+            modalImg.style.transform = `scale(${currentZoom})`;
+        }
+        
+        // 为所有图片容器添加点击事件
+        document.querySelectorAll('.image-container').forEach(container => {
+            container.addEventListener('click', () => {
+                const imgElement = container.querySelector('.heatmap-image');
+                openModal(imgElement.src, imgElement.alt);
+            });
+        });
+        
+        // 关闭模态框
+        modalClose.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+        
+        // 缩放功能
+        document.getElementById('zoomInBtn').addEventListener('click', () => {
+            currentZoom = Math.min(currentZoom + 0.2, 3);
+            modalImg.style.transform = `scale(${currentZoom})`;
+        });
+        
+        document.getElementById('zoomOutBtn').addEventListener('click', () => {
+            currentZoom = Math.max(currentZoom - 0.2, 0.5);
+            modalImg.style.transform = `scale(${currentZoom})`;
+        });
+        
+        document.getElementById('resetZoomBtn').addEventListener('click', () => {
+            currentZoom = 1;
+            modalImg.style.transform = `scale(${currentZoom})`;
+        });
+        
+        // 图片加载错误处理
+        document.querySelectorAll('.heatmap-image').forEach(img => {
+            img.addEventListener('error', function() {
+                console.error('无法加载图片:', this.src);
+                const container = this.closest('.image-container');
+                if (container) {
+                    container.style.backgroundColor = '#ffe6e6';
+                    container.querySelector('.image-footer').textContent = 
+                        '图片加载失败: ' + this.src.split('/').pop() + ' • 请检查文件名';
+                }
+            });
+            
+            // 图片加载成功时记录
+            img.addEventListener('load', function() {
+                console.log('成功加载图片:', this.src);
+            });
+        });
+        
+        // 页面加载时检查图片
+        window.addEventListener('load', () => {
+            console.log('页面加载完成，共找到图片:', document.querySelectorAll('.heatmap-image').length);
+            
+            // 如果图片数量不对，给出提示
+            const expectedImages = 18;
+            const actualImages = document.querySelectorAll('.heatmap-image').length;
+            
+            if (actualImages !== expectedImages) {
+                console.warn(`预期 ${expectedImages} 张图片，实际找到 ${actualImages} 张`);
+            }
+        });
+    </script>
+</body>
+</html>
