@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cluster 5 关键词热力图 (2000-2024)</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            padding: 25px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        .description {
+            color: #7f8c8d;
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 1.1rem;
+        }
+        .chart-container {
+            width: 100%;
+            height: 700px;
+            margin: 20px 0;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0 10px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cluster 5 关键词热力图 (2000-2024)</h1>
+            <p class="description">展示Cluster 5中2000-2024年服装设计相关关键词的数据变化情况。颜色越深表示数值越大，每个单元格内显示具体数值。</p>
+        </header>
+        
+        <div class="controls">
+            <button class="btn" id="toggle-labels">切换数值显示</button>
+            <button class="btn" id="change-color">切换配色方案</button>
+            <button class="btn" id="reset-view">重置视图</button>
+        </div>
+        
+        <div id="chart-container" class="chart-container"></div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fee5d9;"></div>
+                <span>低值 (0-500)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fcae91;"></div>
+                <span>中低值 (500-1000)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fb6a4a;"></div>
+                <span>中值 (1000-1500)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #de2d26;"></div>
+                <span>中高值 (1500-2000)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #a50f15;"></div>
+                <span>高值 (2000+)</span>
+            </div>
+        </div>
+        
+        <footer>
+            <p>数据来源: 1128英文-关键词-热点.xlsx - Cluster 5 | 使用ECharts生成</p>
+        </footer>
+    </div>
+
+    <script>
+        // 按照表格中的原始顺序提取Cluster 5的数据 (2000-2024)
+        const categories = [
+            'Clothing', 'Fashion Design', 'Fabric', 'Fashion', 'Apparel',
+            'Designer', 'Style', 'Body', 'Trends', 'Modeling',
+            'Color', 'Fashion', 'Wear', 'Style', 'Materials',
+            'Cutting', 'Structure', 'Womenswear', 'Student', 'Dress'
+        ];
+        
+        const years = [
+            '2000', '2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009',
+            '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019',
+            '2020', '2021', '2022', '2023', '2024'
+        ];
+        
+        // 数据矩阵 - 行: 类别, 列: 年份 (2000-2024)
+        const dataMatrix = [
+            [187, 192, 625, 732, 746, 1137, 1034, 1337, 1308, 700, 956, 662, 1032, 610, 775, 396, 218, 371, 845, 547, 458, 465, 456, 461, 472],
+            [13, 16, 107, 211, 177, 148, 190, 257, 216, 88, 131, 184, 195, 177, 233, 56, 16, 56, 99, 243, 39, 197, 100, 58, 46],
+            [34, 21, 61, 171, 94, 152, 196, 212, 187, 167, 151, 109, 245, 179, 218, 213, 81, 120, 117, 154, 167, 117, 122, 201, 274],
+            [36, 92, 177, 166, 94, 193, 314, 88, 103, 133, 136, 61, 139, 38, 54, 47, 44, 17, 67, 87, 61, 146, 36, 51, 63],
+            [151, 66, 318, 495, 340, 1011, 990, 836, 711, 455, 585, 471, 523, 208, 541, 543, 276, 550, 555, 420, 349, 614, 581, 561, 538],
+            [180, 279, 906, 1176, 837, 1335, 1392, 1098, 1123, 906, 1157, 938, 919, 917, 668, 1358, 1145, 1053, 967, 967, 1238, 1234, 995, 1175, 1283],
+            [13, 13, 31, 83, 107, 147, 94, 187, 137, 71, 183, 114, 115, 51, 193, 76, 53, 93, 70, 52, 46, 86, 119, 91, 84],
+            [35, 15, 104, 191, 141, 383, 271, 182, 289, 281, 118, 144, 159, 152, 168, 121, 203, 104, 121, 164, 177, 78, 112, 66, 47],
+            [64, 42, 140, 286, 226, 385, 407, 291, 302, 229, 288, 263, 231, 180, 199, 233, 224, 256, 160, 171, 206, 283, 178, 270, 302],
+            [319, 255, 853, 1425, 1057, 1870, 2029, 1614, 1464, 1553, 1635, 1476, 1779, 1835, 1746, 2116, 1261, 1215, 1081, 1132, 970, 715, 621, 866, 913],
+            [169, 300, 1122, 1677, 1108, 2357, 2519, 1644, 1764, 1944, 1250, 1572, 1538, 1068, 1134, 1034, 1181, 903, 1096, 1257, 839, 783, 885, 811, 794],
+            [64, 34, 135, 170, 151, 292, 385, 275, 495, 320, 494, 444, 545, 202, 213, 358, 298, 252, 185, 139, 374, 383, 366, 481, 502],
+            [14, 16, 37, 40, 58, 84, 114, 146, 139, 49, 95, 67, 147, 43, 82, 155, 70, 102, 102, 76, 74, 83, 100, 83, 75],
+            [247, 224, 664, 943, 780, 1494, 1279, 1279, 917, 813, 952, 939, 1028, 762, 1186, 1043, 779, 1012, 856, 684, 837, 758, 721, 1126, 1362],
+            [204, 268, 858, 1047, 774, 1677, 1732, 1202, 903, 1393, 736, 1068, 1118, 843, 824, 1331, 1002, 1030, 923, 861, 1733, 768, 1032, 1335, 1536],
+            [5, 7, 15, 17, 86, 37, 59, 49, 46, 50, 35, 70, 65, 48, 101, 46, 20, 42, 17, 49, 39, 42, 20, 46, 63],
+            [135, 170, 541, 815, 780, 1162, 1267, 826, 933, 877, 936, 946, 1121, 922, 1033, 1281, 942, 1145, 1208, 1152, 1334, 1065, 1152, 1222, 1364],
+            [29, 0, 12, 28, 11, 56, 54, 95, 114, 32, 84, 32, 94, 23, 34, 89, 47, 21, 25, 20, 15, 14, 15, 93, 117],
+            [268, 217, 660, 1139, 969, 1161, 1449, 1067, 1485, 1680, 1750, 2170, 2112, 1880, 1933, 2033, 1839, 1557, 1585, 2417, 1711, 1533, 1476, 1574, 1683],
+            [4, 14, 34, 21, 18, 72, 86, 44, 42, 28, 16, 25, 71, 16, 58, 74, 33, 68, 44, 20, 27, 39, 22, 35, 48]
+        ];
+
+        // 将数据转换为热力图格式 [xIndex, yIndex, value]
+        const data = [];
+        for (let i = 0; i < categories.length; i++) {
+            for (let j = 0; j < years.length; j++) {
+                data.push([j, i, dataMatrix[i][j] || 0]);
+            }
+        }
+
+        // 初始化图表
+        const chartDom = document.getElementById('chart-container');
+        const myChart = echarts.init(chartDom);
+        
+        // 颜色方案
+        const colorSchemes = [
+            ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15'], // 红色系
+            ['#e0f3db', '#abdda4', '#66c2a4', '#3288bd', '#5e4fa2'], // 蓝绿色系
+            ['#ffffcc', '#ffeda0', '#fed976', '#feb24c', '#fd8d3c', '#fc4e2a', '#e31a1c', '#bd0026', '#800026'] // 黄色到红色
+        ];
+        
+        let currentColorScheme = 0;
+        let showLabels = true;
+
+        // 计算数据范围
+        const minValue = 0;
+        const maxValue = Math.max(...dataMatrix.flat());
+        
+        // 配置项
+        const option = {
+            tooltip: {
+                position: 'top',
+                formatter: function (params) {
+                    return `<strong>${categories[params.data[1]]}</strong><br/>
+                            ${years[params.data[0]]}: <span style="color: #e74c3c; font-weight: bold;">${params.data[2]}</span>`;
+                },
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderColor: '#3498db',
+                textStyle: {
+                    color: '#2c3e50'
+                }
+            },
+            grid: {
+                height: '75%',
+                top: '10%',
+                left: '10%',
+                right: '5%'
+            },
+            xAxis: {
+                type: 'category',
+                data: years,
+                splitArea: {
+                    show: true
+                },
+                axisLabel: {
+                    interval: 0,
+                    rotate: 45,
+                    margin: 15
+                }
+            },
+            yAxis: {
+                type: 'category',
+                data: categories,
+                splitArea: {
+                    show: true
+                },
+                axisLabel: {
+                    margin: 15
+                },
+                inverse: true  // 关键设置：反转Y轴，使Clothing在顶部，Dress在底部
+            },
+            visualMap: {
+                min: minValue,
+                max: maxValue,
+                calculable: true,
+                orient: 'horizontal',
+                left: 'center',
+                bottom: '0%',
+                text: ['高', '低'],
+                textStyle: {
+                    color: '#2c3e50'
+                },
+                inRange: {
+                    color: colorSchemes[currentColorScheme]
+                }
+            },
+            series: [
+                {
+                    name: '数据值',
+                    type: 'heatmap',
+                    data: data,
+                    label: {
+                        show: showLabels,
+                        color: '#2c3e50',
+                        fontWeight: 'bold',
+                        fontSize: 11,
+                        formatter: function(params) {
+                            // 对于较小的值，使用更深的颜色提高可读性
+                            return params.data[2] > 0 ? params.data[2] : '';
+                        }
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    },
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 1
+                    }
+                }
+            ]
+        };
+
+        // 使用配置项和数据显示图表
+        myChart.setOption(option);
+        
+        // 切换标签显示
+        document.getElementById('toggle-labels').addEventListener('click', function() {
+            showLabels = !showLabels;
+            option.series[0].label.show = showLabels;
+            myChart.setOption(option);
+        });
+        
+        // 切换颜色方案
+        document.getElementById('change-color').addEventListener('click', function() {
+            currentColorScheme = (currentColorScheme + 1) % colorSchemes.length;
+            option.visualMap.inRange.color = colorSchemes[currentColorScheme];
+            myChart.setOption(option);
+        });
+        
+        // 重置视图
+        document.getElementById('reset-view').addEventListener('click', function() {
+            myChart.dispatchAction({
+                type: 'dataZoom',
+                start: 0,
+                end: 100
+            });
+        });
+        
+        // 响应窗口大小变化
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cluster 4 关键词热力图 (1980-1999)</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            padding: 25px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        .description {
+            color: #7f8c8d;
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 1.1rem;
+        }
+        .chart-container {
+            width: 100%;
+            height: 700px;
+            margin: 20px 0;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0 10px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cluster 4 关键词热力图 (1980-1999)</h1>
+            <p class="description">展示Cluster 4中1980-1999年民族服饰与图案相关关键词的数据变化情况。颜色越深表示数值越大，每个单元格内显示具体数值。</p>
+        </header>
+        
+        <div class="controls">
+            <button class="btn" id="toggle-labels">切换数值显示</button>
+            <button class="btn" id="change-color">切换配色方案</button>
+            <button class="btn" id="reset-view">重置视图</button>
+        </div>
+        
+        <div id="chart-container" class="chart-container"></div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fee5d9;"></div>
+                <span>低值 (0-100)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fcae91;"></div>
+                <span>中低值 (100-200)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fb6a4a;"></div>
+                <span>中值 (200-300)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #de2d26;"></div>
+                <span>中高值 (300-400)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #a50f15;"></div>
+                <span>高值 (400+)</span>
+            </div>
+        </div>
+        
+        <footer>
+            <p>数据来源: 1128英文-关键词-热点.xlsx - Cluster 4 | 使用ECharts生成</p>
+        </footer>
+    </div>
+
+    <script>
+        // 按照表格中的原始顺序提取Cluster 4的数据 (1980-1999)
+        const categories = [
+            'Pattern', 'Apparel', 'Design', 'Miao Ethnic Group', 'Embroidery',
+            'Ethnic', 'Women', 'Color', 'Clothing', 'Modeling',
+            'Folk', 'Craft', 'Ornament', 'Female', 'Patterned Weaving',
+            'Xinjiang', 'Aesthetics', 'Image', 'Symbolism', 'Characteristics'
+        ];
+        
+        const years = [
+            '1980', '1982', '1983', '1984', '1985', '1986', '1987', '1988', '1989', '1990',
+            '1991', '1992', '1993', '1994', '1995', '1996', '1997', '1998', '1999'
+        ];
+        
+        // 数据矩阵 - 行: 类别, 列: 年份 (1980-1999)
+        const dataMatrix = [
+            [385, 48, 108, 64, 181, 241, 303, 187, 92, 280, 222, 113, 90, 104, 90, 169, 437, 135, 158],
+            [42, 21, 12, 18, 11, 64, 73, 87, 20, 18, 89, 21, 11, 59, 35, 9, 57, 42, 60],
+            [133, 20, 107, 45, 96, 81, 83, 79, 25, 51, 91, 47, 38, 19, 29, 48, 88, 104, 106],
+            [56, 8, 31, 5, 1, 3, 1, 33, 0, 0, 11, 0, 46, 3, 6, 2, 10, 6, 24],
+            [59, 11, 19, 12, 9, 64, 59, 13, 6, 11, 15, 25, 41, 4, 50, 6, 26, 29, 18],
+            [190, 22, 98, 68, 85, 114, 83, 157, 77, 141, 207, 53, 78, 90, 68, 126, 145, 254, 225],
+            [64, 35, 12, 23, 8, 24, 29, 11, 32, 15, 47, 31, 18, 9, 45, 6, 16, 23, 74],
+            [229, 12, 161, 79, 147, 367, 285, 193, 343, 103, 201, 231, 99, 96, 191, 208, 231, 261, 160],
+            [74, 5, 82, 104, 376, 363, 301, 158, 92, 52, 167, 45, 78, 98, 151, 50, 241, 240, 216],
+            [276, 27, 176, 40, 313, 273, 209, 192, 127, 134, 183, 266, 125, 90, 287, 256, 291, 472, 363],
+            [268, 62, 92, 17, 42, 87, 41, 246, 168, 277, 119, 79, 67, 76, 34, 51, 61, 112, 159],
+            [314, 62, 117, 45, 150, 256, 189, 379, 277, 375, 554, 212, 156, 140, 188, 215, 279, 238, 189],
+            [12, 3, 6, 0, 5, 12, 29, 17, 3, 10, 30, 11, 13, 6, 12, 18, 19, 34, 8],
+            [4, 1, 4, 0, 7, 9, 14, 13, 6, 6, 6, 13, 7, 2, 96, 9, 17, 12, 19],
+            [17, 2, 3, 26, 5, 6, 2, 5, 1, 1, 6, 2, 7, 3, 4, 0, 0, 0, 2],
+            [4, 2, 3, 2, 0, 8, 0, 1, 6, 0, 0, 0, 3, 2, 0, 0, 4, 1, 1],
+            [50, 6, 36, 28, 68, 115, 72, 154, 187, 157, 201, 92, 104, 61, 82, 108, 164, 203, 175],
+            [196, 17, 112, 21, 272, 280, 159, 157, 109, 117, 128, 110, 65, 92, 175, 251, 197, 250, 102],
+            [43, 4, 39, 8, 68, 30, 52, 77, 44, 41, 36, 19, 34, 30, 48, 57, 52, 74, 64],
+            [38, 6, 33, 14, 64, 58, 63, 78, 92, 66, 119, 62, 56, 29, 61, 98, 155, 144, 86]
+        ];
+
+        // 将数据转换为热力图格式 [xIndex, yIndex, value]
+        const data = [];
+        for (let i = 0; i < categories.length; i++) {
+            for (let j = 0; j < years.length; j++) {
+                data.push([j, i, dataMatrix[i][j] || 0]);
+            }
+        }
+
+        // 初始化图表
+        const chartDom = document.getElementById('chart-container');
+        const myChart = echarts.init(chartDom);
+        
+        // 颜色方案
+        const colorSchemes = [
+            ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15'], // 红色系
+            ['#e0f3db', '#abdda4', '#66c2a4', '#3288bd', '#5e4fa2'], // 蓝绿色系
+            ['#ffffcc', '#ffeda0', '#fed976', '#feb24c', '#fd8d3c', '#fc4e2a', '#e31a1c', '#bd0026', '#800026'] // 黄色到红色
+        ];
+        
+        let currentColorScheme = 0;
+        let showLabels = true;
+
+        // 计算数据范围
+        const minValue = 0;
+        const maxValue = Math.max(...dataMatrix.flat());
+        
+        // 配置项
+        const option = {
+            tooltip: {
+                position: 'top',
+                formatter: function (params) {
+                    return `<strong>${categories[params.data[1]]}</strong><br/>
+                            ${years[params.data[0]]}: <span style="color: #e74c3c; font-weight: bold;">${params.data[2]}</span>`;
+                },
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderColor: '#3498db',
+                textStyle: {
+                    color: '#2c3e50'
+                }
+            },
+            grid: {
+                height: '75%',
+                top: '10%',
+                left: '10%',
+                right: '5%'
+            },
+            xAxis: {
+                type: 'category',
+                data: years,
+                splitArea: {
+                    show: true
+                },
+                axisLabel: {
+                    interval: 0,
+                    rotate: 45,
+                    margin: 15
+                }
+            },
+            yAxis: {
+                type: 'category',
+                data: categories,
+                splitArea: {
+                    show: true
+                },
+                axisLabel: {
+                    margin: 15
+                },
+                inverse: true  // 关键设置：反转Y轴，使Pattern在顶部，Characteristics在底部
+            },
+            visualMap: {
+                min: minValue,
+                max: maxValue,
+                calculable: true,
+                orient: 'horizontal',
+                left: 'center',
+                bottom: '0%',
+                text: ['高', '低'],
+                textStyle: {
+                    color: '#2c3e50'
+                },
+                inRange: {
+                    color: colorSchemes[currentColorScheme]
+                }
+            },
+            series: [
+                {
+                    name: '数据值',
+                    type: 'heatmap',
+                    data: data,
+                    label: {
+                        show: showLabels,
+                        color: '#2c3e50',
+                        fontWeight: 'bold',
+                        fontSize: 11,
+                        formatter: function(params) {
+                            // 对于较小的值，使用更深的颜色提高可读性
+                            return params.data[2] > 0 ? params.data[2] : '';
+                        }
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    },
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 1
+                    }
+                }
+            ]
+        };
+
+        // 使用配置项和数据显示图表
+        myChart.setOption(option);
+        
+        // 切换标签显示
+        document.getElementById('toggle-labels').addEventListener('click', function() {
+            showLabels = !showLabels;
+            option.series[0].label.show = showLabels;
+            myChart.setOption(option);
+        });
+        
+        // 切换颜色方案
+        document.getElementById('change-color').addEventListener('click', function() {
+            currentColorScheme = (currentColorScheme + 1) % colorSchemes.length;
+            option.visualMap.inRange.color = colorSchemes[currentColorScheme];
+            myChart.setOption(option);
+        });
+        
+        // 重置视图
+        document.getElementById('reset-view').addEventListener('click', function() {
+            myChart.dispatchAction({
+                type: 'dataZoom',
+                start: 0,
+                end: 100
+            });
+        });
+        
+        // 响应窗口大小变化
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+    </script>
+</body>
+</html>
